@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import Modal from '../components/Modal';
 import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 export default function Database({ data }) {
   const [search, setSearch] = useState('');
   const [platformFilter, setPlatformFilter] = useState('');
-  const [over400Filter, setOver400Filter] = useState('');
+  const [playCountFilter, setPlayCountFilter] = useState('');
   const [sortKey, setSortKey] = useState('');
   const [sortDir, setSortDir] = useState('asc');
   const [modalDrama, setModalDrama] = useState(null);
@@ -23,21 +25,22 @@ export default function Database({ data }) {
       );
     }
     if (platformFilter) result = result.filter(d => d.platform === platformFilter);
-    if (over400Filter === 'yes') result = result.filter(d => d.over400w);
-    if (over400Filter === 'no') result = result.filter(d => !d.over400w);
+    if (playCountFilter === 'yes') result = result.filter(d => d.playCount > 0);
+    if (playCountFilter === 'no') result = result.filter(d => !d.playCount);
+    if (playCountFilter && !isNaN(Number(playCountFilter))) result = result.filter(d => d.playCount === Number(playCountFilter));
     if (sortKey) {
       result = [...result].sort((a, b) => {
         let va = a[sortKey], vb = b[sortKey];
         if (sortKey === 'cvs') { va = va.join(''); vb = vb.join(''); }
-        if (sortKey === 'over400w') { va = va ? 1 : 0; vb = vb ? 1 : 0; }
+        if (sortKey === 'playCount') { va = va || 0; vb = vb || 0; }
         if (typeof va === 'string') return sortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
         return sortDir === 'asc' ? va - vb : vb - va;
       });
     } else {
-      result = [...result].sort((a, b) => (b.over400w ? 1 : 0) - (a.over400w ? 1 : 0));
+      result = [...result].sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
     }
     return result;
-  }, [data, search, platformFilter, over400Filter, sortKey, sortDir]);
+  }, [data, search, platformFilter, playCountFilter, sortKey, sortDir]);
 
   const toggleSort = (key) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -68,11 +71,19 @@ export default function Database({ data }) {
           <option value="">全部平台</option>
           {platforms.map(p => <option key={p} value={p}>{p}</option>)}
         </select>
-        <select value={over400Filter} onChange={e => setOver400Filter(e.target.value)}
+        <select value={playCountFilter} onChange={e => setPlayCountFilter(e.target.value)}
           className="bg-primary/5 border border-primary/15 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/40 appearance-none cursor-pointer [&>option]:bg-[#1a1a2e] [&>option]:text-white min-w-[140px]">
           <option value="">全部播放量</option>
-          <option value="yes">播放超400万</option>
-          <option value="no">未超400万</option>
+          <option value="yes">400万以上</option>
+          <option value="no">400万以下</option>
+          <option value="2000">2000万+</option>
+          <option value="1000">1000万+</option>
+          <option value="900">900万+</option>
+          <option value="800">800万+</option>
+          <option value="700">700万+</option>
+          <option value="600">600万+</option>
+          <option value="500">500万+</option>
+          <option value="400">400万+</option>
         </select>
       </div>
 
@@ -89,7 +100,7 @@ export default function Database({ data }) {
                   { key: 'author', label: '作者' },
                   { key: 'cvs', label: 'CV' },
                   { key: 'platform', label: '平台' },
-                  { key: 'over400w', label: '400万播放' },
+                  { key: 'playCount', label: '播放量' },
                 ].map(col => (
                   <th key={col.key} className="text-left py-3 px-4 font-medium text-slate-300 cursor-pointer select-none hover:text-primary transition-colors"
                     onClick={() => toggleSort(col.key)}>
@@ -110,7 +121,7 @@ export default function Database({ data }) {
                   <td className="py-3 px-4 text-slate-300 max-w-[200px] truncate">{d.cvs.join('、')}</td>
                   <td className="py-3 px-4 text-slate-400">{d.platform}</td>
                   <td className="py-3 px-4">
-                    <span className={`tag ${d.over400w ? 'tag-yes' : 'tag-no'}`}>{d.over400w ? '是' : '否'}</span>
+                    <span className={`tag ${d.playCount > 0 ? 'tag-yes' : 'tag-no'}`}>{d.playCount > 0 ? `${d.playCount}万+` : '<400万'}</span>
                   </td>
                 </tr>
               ))}
@@ -120,20 +131,12 @@ export default function Database({ data }) {
       </div>
 
       <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
-        wide={!!(modalDrama && getDramaPoster(modalDrama.title))}
-        sideContent={modalDrama && getDramaPoster(modalDrama.title) ? (
-          <img src={getDramaPoster(modalDrama.title)} alt={modalDrama.title}
-            className="w-36 h-auto rounded-xl shadow-lg shadow-primary/20 border border-primary/20 object-cover" />
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
         ) : undefined}>
         {modalDrama && (
-          <div className="space-y-2.5 text-sm">
-            <div><span className="text-slate-400">作者：</span><span className="text-white">{modalDrama.author}</span></div>
-            <div><span className="text-slate-400">平台：</span><span className="text-white">{modalDrama.platform}</span></div>
-            <div><span className="text-slate-400">CV：</span><span className="text-white">{modalDrama.cvs.join('、')}</span></div>
-            <div><span className="text-slate-400">播放超400万：</span>
-              <span className={`tag ${modalDrama.over400w ? 'tag-yes' : 'tag-no'}`}>{modalDrama.over400w ? '是' : '否'}</span>
-            </div>
-          </div>
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>

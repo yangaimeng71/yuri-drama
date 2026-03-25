@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import Modal from '../components/Modal';
+import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 function buildCollabMap(data) {
   const map = {};
@@ -31,6 +34,7 @@ export default function CVUniverse({ data }) {
   const [expandedNodes, setExpandedNodes] = useState(new Set());
   const [selectedEdge, setSelectedEdge] = useState(null);
   const [selectedPair, setSelectedPair] = useState(null);
+  const [modalDrama, setModalDrama] = useState(null);
 
   const { collabMap, dramaMap, allCVs } = useMemo(() => {
     const { map, dramaMap } = buildCollabMap(data);
@@ -191,7 +195,7 @@ export default function CVUniverse({ data }) {
     if (!selectedPair) return [];
     const titles = dramaMap[selectedPair.key] || [];
     return titles.map(t => dramaByTitle[t]).filter(Boolean)
-      .sort((a, b) => (b.over400w ? 1 : 0) - (a.over400w ? 1 : 0));
+      .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [selectedPair, dramaMap, dramaByTitle]);
 
   return (
@@ -280,11 +284,15 @@ export default function CVUniverse({ data }) {
             </div>
             <h5 className="text-sm font-bold text-slate-300 mb-2">合作广播剧</h5>
             <div className="space-y-1">
-              {sideInfo.dramas.map((t, i) => (
-                <div key={i} className="text-sm py-1.5 px-2 rounded hover:bg-primary/5 text-slate-200">
-                  <span className="text-primary text-xs font-bold mr-2">{i + 1}</span>{t}
-                </div>
-              ))}
+              {sideInfo.dramas.map((t, i) => {
+                const d = dramaByTitle[t];
+                return (
+                  <div key={i} className="text-sm py-1.5 px-2 rounded hover:bg-primary/5 text-slate-200 cursor-pointer"
+                    onClick={() => d && setModalDrama(d)}>
+                    <span className="text-primary text-xs font-bold mr-2">{i + 1}</span>{t}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
@@ -298,7 +306,8 @@ export default function CVUniverse({ data }) {
             <h4 className="text-sm font-bold text-slate-300">合作广播剧列表</h4>
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {pairDramas.map((d, i) => (
-                <div key={i} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-primary/5 text-sm border border-primary/5">
+                <div key={i} className="flex items-center justify-between py-2.5 px-3 rounded-lg hover:bg-primary/5 text-sm border border-primary/5 cursor-pointer"
+                  onClick={() => setModalDrama(d)}>
                   <div className="min-w-0">
                     <span className="text-primary text-xs font-bold mr-2">{i + 1}</span>
                     <span className="text-white font-medium">{d.title}</span>
@@ -306,12 +315,22 @@ export default function CVUniverse({ data }) {
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-2">
                     <span className="text-slate-500 text-xs">{d.platform}</span>
-                    {d.over400w && <span className="tag tag-yes">400万+</span>}
+                    {d.playCount > 0 && <span className="tag tag-yes">{d.playCount}万+</span>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
+        ) : undefined}>
+        {modalDrama && (
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>

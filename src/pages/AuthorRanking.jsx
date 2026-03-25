@@ -3,6 +3,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 
 import DramaTable from '../components/DrameTable';
 import Modal from '../components/Modal';
 import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 const COLORS = ['#9C8CF5','#A78BFA','#818CF8','#7C3AED','#6D28D9','#8B5CF6'];
 
@@ -29,7 +31,7 @@ export default function AuthorRanking({ data }) {
   const authorDramas = useMemo(() => {
     if (!selectedAuthor) return [];
     return data.filter(d => d.author === selectedAuthor)
-      .sort((a, b) => (b.over400w ? 1 : 0) - (a.over400w ? 1 : 0));
+      .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [data, selectedAuthor]);
 
   return (
@@ -73,20 +75,12 @@ export default function AuthorRanking({ data }) {
       </Modal>
 
       <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
-        wide={!!(modalDrama && getDramaPoster(modalDrama.title))}
-        sideContent={modalDrama && getDramaPoster(modalDrama.title) ? (
-          <img src={getDramaPoster(modalDrama.title)} alt={modalDrama.title}
-            className="w-36 h-auto rounded-xl shadow-lg shadow-primary/20 border border-primary/20 object-cover" />
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
         ) : undefined}>
         {modalDrama && (
-          <div className="space-y-2.5 text-sm">
-            <div><span className="text-slate-400">作者：</span><span className="text-white">{modalDrama.author}</span></div>
-            <div><span className="text-slate-400">平台：</span><span className="text-white">{modalDrama.platform}</span></div>
-            <div><span className="text-slate-400">CV：</span><span className="text-white">{modalDrama.cvs.join('、')}</span></div>
-            <div><span className="text-slate-400">播放超400万：</span>
-              <span className={`tag ${modalDrama.over400w ? 'tag-yes' : 'tag-no'}`}>{modalDrama.over400w ? '是' : '否'}</span>
-            </div>
-          </div>
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>

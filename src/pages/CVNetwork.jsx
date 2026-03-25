@@ -1,6 +1,9 @@
 import React, { useRef, useEffect, useMemo, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import Modal from '../components/Modal';
+import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 function buildGraph(data) {
   const cvCount = {};
@@ -45,12 +48,19 @@ const SELECTED_LINK_COLOR = '#4ade80';
 export default function CVNetwork({ data }) {
   const svgRef = useRef(null);
   const [edgeInfo, setEdgeInfo] = useState(null);
+  const [modalDrama, setModalDrama] = useState(null);
   const [dimensions, setDimensions] = useState({ w: 900, h: 600 });
   // Track selected node & edge for highlight state across renders
   const selectedNodeRef = useRef(null);
   const selectedEdgeRef = useRef(null);
 
   const graph = useMemo(() => buildGraph(data), [data]);
+
+  const dramaByTitle = useMemo(() => {
+    const m = {};
+    data.forEach(d => { m[d.title] = d; });
+    return m;
+  }, [data]);
 
   const handleResize = useCallback(() => {
     const container = svgRef.current?.parentElement;
@@ -234,14 +244,28 @@ export default function CVNetwork({ data }) {
             </div>
             <h4 className="text-sm font-bold text-slate-300">合作广播剧</h4>
             <div className="space-y-1.5">
-              {edgeInfo.dramas.map((t, i) => (
-                <div key={i} className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg hover:bg-primary/5">
-                  <span className="text-primary font-bold text-xs">{i + 1}</span>
-                  <span className="text-white">{t}</span>
-                </div>
-              ))}
+              {edgeInfo.dramas.map((t, i) => {
+                const d = dramaByTitle[t];
+                return (
+                  <div key={i} className="flex items-center gap-2 text-sm py-1.5 px-3 rounded-lg hover:bg-primary/5 cursor-pointer"
+                    onClick={() => d && setModalDrama(d)}>
+                    <span className="text-primary font-bold text-xs">{i + 1}</span>
+                    <span className="text-white">{t}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
+        ) : undefined}>
+        {modalDrama && (
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>

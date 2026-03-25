@@ -48,7 +48,7 @@ export default function Overview({ data }) {
       if (d.author) authors.add(d.author);
       platforms.add(d.platform);
       platformCount[d.platform] = (platformCount[d.platform]||0) + 1;
-      if (d.over400w) over400++;
+      if (d.playCount > 0) over400++;
     });
     const platformData = Object.entries(platformCount)
       .sort((a,b) => b[1]-a[1])

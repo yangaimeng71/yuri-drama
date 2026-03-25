@@ -2,6 +2,8 @@ import React, { useMemo, useState } from 'react';
 import DramaTable from '../components/DrameTable';
 import Modal from '../components/Modal';
 import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 const PLATFORM_ICONS = {
   '饭角': '/images/platforms/app-饭角.jpg',
@@ -21,7 +23,7 @@ export default function PlatformStats({ data }) {
     const pCount = {}, p400 = {};
     data.forEach(d => {
       pCount[d.platform] = (pCount[d.platform]||0) + 1;
-      if (d.over400w) p400[d.platform] = (p400[d.platform]||0) + 1;
+      if (d.playCount > 0) p400[d.platform] = (p400[d.platform]||0) + 1;
     });
     return {
       platformData: Object.entries(pCount).sort((a,b) => b[1]-a[1]).map(([name,value]) => ({name,value})),
@@ -32,7 +34,7 @@ export default function PlatformStats({ data }) {
   const platformDramas = useMemo(() => {
     if (!selectedPlatform) return [];
     return data.filter(d => d.platform === selectedPlatform)
-      .sort((a, b) => (b.over400w ? 1 : 0) - (a.over400w ? 1 : 0));
+      .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [data, selectedPlatform]);
 
   return (
@@ -84,20 +86,12 @@ export default function PlatformStats({ data }) {
       )}
 
       <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
-        wide={!!(modalDrama && getDramaPoster(modalDrama.title))}
-        sideContent={modalDrama && getDramaPoster(modalDrama.title) ? (
-          <img src={getDramaPoster(modalDrama.title)} alt={modalDrama.title}
-            className="w-36 h-auto rounded-xl shadow-lg shadow-primary/20 border border-primary/20 object-cover" />
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
         ) : undefined}>
         {modalDrama && (
-          <div className="space-y-2.5 text-sm">
-            <div><span className="text-slate-400">作者：</span><span className="text-white">{modalDrama.author}</span></div>
-            <div><span className="text-slate-400">平台：</span><span className="text-white">{modalDrama.platform}</span></div>
-            <div><span className="text-slate-400">CV：</span><span className="text-white">{modalDrama.cvs.join('、')}</span></div>
-            <div><span className="text-slate-400">播放超400万：</span>
-              <span className={`tag ${modalDrama.over400w ? 'tag-yes' : 'tag-no'}`}>{modalDrama.over400w ? '是' : '否'}</span>
-            </div>
-          </div>
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>

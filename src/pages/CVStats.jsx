@@ -1,6 +1,9 @@
 import React, { useMemo, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Modal from '../components/Modal';
+import { getDramaPoster } from '../utils/dramaPoster';
+import PosterWithAudio from '../components/PosterWithAudio';
+import DramaDetail from '../components/DramaDetail';
 
 const COLORS = ['#9C8CF5','#A78BFA','#818CF8','#7C3AED','#6D28D9'];
 
@@ -17,13 +20,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 export default function CVStats({ data }) {
   const [search, setSearch] = useState('');
   const [selectedCV, setSelectedCV] = useState(null);
+  const [modalDrama, setModalDrama] = useState(null);
 
   const { cvCount, cv400Count, allCVs } = useMemo(() => {
     const cc = {}, c4 = {};
     data.forEach(d => {
       d.cvs.forEach(c => {
         cc[c] = (cc[c]||0) + 1;
-        if (d.over400w) c4[c] = (c4[c]||0) + 1;
+        if (d.playCount > 0) c4[c] = (c4[c]||0) + 1;
       });
     });
     return { cvCount: cc, cv400Count: c4, allCVs: Object.keys(cc).sort() };
@@ -44,7 +48,7 @@ export default function CVStats({ data }) {
   const cvDramas = useMemo(() => {
     if (!selectedCV) return [];
     return data.filter(d => d.cvs.includes(selectedCV))
-      .sort((a, b) => (b.over400w ? 1 : 0) - (a.over400w ? 1 : 0));
+      .sort((a, b) => (b.playCount || 0) - (a.playCount || 0));
   }, [data, selectedCV]);
 
   return (
@@ -113,25 +117,36 @@ export default function CVStats({ data }) {
               </div>
               <div className="stat-card flex-1 text-center">
                 <p className="text-xs text-slate-400">400万播放</p>
-                <p className="text-2xl font-bold text-primary mt-1">{cvDramas.filter(d=>d.over400w).length}</p>
+                <p className="text-2xl font-bold text-primary mt-1">{cvDramas.filter(d=>d.playCount > 0).length}</p>
               </div>
             </div>
             <h4 className="text-sm font-bold text-slate-300 mt-4">参与广播剧列表</h4>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {cvDramas.map((d,i) => (
-                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-primary/5 text-sm">
+                <div key={i} className="flex items-center justify-between py-2 px-3 rounded-lg hover:bg-primary/5 cursor-pointer text-sm"
+                  onClick={() => setModalDrama(d)}>
                   <div>
                     <span className="text-white font-medium">{d.title}</span>
                     <span className="text-slate-500 ml-2">{d.author}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-slate-500 text-xs">{d.platform}</span>
-                    {d.over400w && <span className="tag tag-yes">400万+</span>}
+                    {d.playCount > 0 && <span className="tag tag-yes">{d.playCount}万+</span>}
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        )}
+      </Modal>
+
+      <Modal open={!!modalDrama} onClose={() => setModalDrama(null)} title={modalDrama?.title || ''}
+        wide={!!(modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title))}
+        sideContent={modalDrama && modalDrama.playCount > 0 && getDramaPoster(modalDrama.title) ? (
+          <PosterWithAudio title={modalDrama.title} />
+        ) : undefined}>
+        {modalDrama && (
+          <DramaDetail drama={modalDrama} />
         )}
       </Modal>
     </div>
