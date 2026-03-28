@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import Overview from './pages/Overview';
 import PlatformStats from './pages/PlatformStats';
 import CVStats from './pages/CVStats';
@@ -113,6 +114,7 @@ export default function App() {
           {renderPage()}
         </div>
       </main>
+      <Analytics />
     </div>
   );
 }
